@@ -1,0 +1,37 @@
+[package]
+license = "GPL-3.0-only"
+authors = ["Robert Bermani <bobbermani@gmail.com>"]
+description = "A rust library for managing music primitives"
+name = "mulib"
+version = "0.1.0"
+keywords = ["music", "musictheory"]
+edition = "2021"
+
+[dependencies]
+thiserror = "1.0.49"
+env_logger = "0.10.0"
+log = "0.4.20"
+nom = "7.1.3"
+num = "0.4.1"
+num-derive = "0.4.0"
+num-traits = "0.2.16"
+strum = { version = "0.25.0", features = ["derive"]}
+
+structopt = { version = "0.3.26", optional = true }
+repl-rs = { version = "0.2.8", optional = true }
+
+[lib]
+name = "mulib"
+path = "src/lib.rs"
+
+[features]
+build-binary = ["structopt", "repl-rs"]
+default = ["build-binary"]
+
+[[bin]]
+name = "mulibtest"
+path = "bin/mulibtest.rs"
+required-features = ["build-binary"]
+
+
+
