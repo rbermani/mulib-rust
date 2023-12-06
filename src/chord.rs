@@ -1,15 +1,15 @@
-use crate::interval::{Interval, NumericIntervalsSlice};
-use crate::notes::{Notes, Pitches};
-use crate::pitch::PitchOctave;
+use crate::interval::{IntervalType, NumericIntervalsSlice};
+use crate::notes::Notes;
+use crate::pitch::{PitchOctave, Pitches};
 use crate::error::{Error, Result};
 use strum::EnumString;
 
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Chord {
-    root: PitchOctave,
-    kind: ChordQuality,
-    inversion: Inversion,
+    pub root: PitchOctave,
+    pub kind: ChordQuality,
+    pub inversion: Inversion,
 }
 
 impl Chord {
@@ -19,14 +19,14 @@ impl Chord {
     pub fn new_as_inversion(root: PitchOctave, kind: ChordQuality, inversion: Inversion) -> Self {
         Self {root, kind, inversion}
     }
-    fn get_inversion(&self, inversion: Inversion) -> Result<Pitches> {
+    fn gen_inversion(&self, inversion: Inversion) -> Result<Pitches> {
         let root_form = self.kind.root_chord_interval();
         match self.inversion {
             Inversion::Root => {
-                let mut chord: Pitches = vec![self.root];
+                let mut chord  = Pitches(vec![self.root]);
                 for note in root_form {
-                    if let Some(chord_tone) = self.root.checked_add(Interval::from(*note)) {
-                        chord.push(chord_tone);
+                    if let Some(chord_tone) = self.root.checked_add(IntervalType::from(*note)) {
+                        chord.0.push(chord_tone);
                     } else {
                         return Err(Error::OutofBounds);
                     }
@@ -34,17 +34,17 @@ impl Chord {
                 Ok(chord)
             }
             Inversion::First => {
-                let mut chord: Pitches = vec![];
+                let mut chord  = Pitches(vec![]);
                 for note in root_form {
                     // The third is the bass note
-                    if let Some(chord_tone) = self.root.checked_add(Interval::from(*note)) {
-                        chord.push(chord_tone);
+                    if let Some(chord_tone) = self.root.checked_add(IntervalType::from(*note)) {
+                        chord.0.push(chord_tone);
                     } else {
                         return Err(Error::OutofBounds);
                     }
                 }
-                if let Some(chord_tone) = self.root.checked_add(Interval::Octave) {
-                    chord.push(chord_tone);
+                if let Some(chord_tone) = self.root.checked_add(IntervalType::Octave) {
+                    chord.0.push(chord_tone);
                 } else {
                     return Err(Error::OutofBounds);
                 }
@@ -52,13 +52,13 @@ impl Chord {
             }
             Inversion::Second => {
                 // Get first inversion, and move first note up an octave
-                let mut chord = self.get_inversion(Inversion::First)?;
+                let mut chord = self.gen_inversion(Inversion::First)?;
                 let mut first_note = PitchOctave::default();
-                if !chord.is_empty() {
-                    first_note = chord.remove(0);
+                if !chord.0.is_empty() {
+                    first_note = chord.0.remove(0);
                 }
-                if let Some(chord_tone) = first_note.checked_add(Interval::Octave) {
-                    chord.push(chord_tone);
+                if let Some(chord_tone) = first_note.checked_add(IntervalType::Octave) {
+                    chord.0.push(chord_tone);
                 } else {
                     return Err(Error::OutofBounds);
                 }
@@ -67,13 +67,13 @@ impl Chord {
             Inversion::Third => {
                 if self.kind.root_chord_interval().len() >= Inversion::MINIMUM_LEN_THIRD_INVERSION {
                     // Get second inversion, and move first note up an octave
-                    let mut chord = self.get_inversion(Inversion::Second)?;
+                    let mut chord = self.gen_inversion(Inversion::Second)?;
                     let mut first_note = PitchOctave::default();
-                    if !chord.is_empty() {
-                        first_note = chord.remove(0);
+                    if !chord.0.is_empty() {
+                        first_note = chord.0.remove(0);
                     }
-                    if let Some(chord_tone) = first_note.checked_add(Interval::Octave) {
-                        chord.push(chord_tone);
+                    if let Some(chord_tone) = first_note.checked_add(IntervalType::Octave) {
+                        chord.0.push(chord_tone);
                     } else {
                         return Err(Error::OutofBounds);
                     }
@@ -86,13 +86,13 @@ impl Chord {
             Inversion::Fourth => {
                 if self.kind.root_chord_interval().len() >= Inversion::MINIMUM_LEN_FOURTH_INVERSION {
                     // Get second inversion, and move first note up an octave
-                    let mut chord = self.get_inversion(Inversion::Second)?;
+                    let mut chord = self.gen_inversion(Inversion::Second)?;
                     let mut first_note = PitchOctave::default();
-                    if !chord.is_empty() {
-                        first_note = chord.remove(0);
+                    if !chord.0.is_empty() {
+                        first_note = chord.0.remove(0);
                     }
-                    if let Some(chord_tone) = first_note.checked_add(Interval::Octave) {
-                        chord.push(chord_tone);
+                    if let Some(chord_tone) = first_note.checked_add(IntervalType::Octave) {
+                        chord.0.push(chord_tone);
                     } else {
                         return Err(Error::OutofBounds);
                     }
@@ -108,7 +108,7 @@ impl Chord {
 
 impl Notes for Chord {
     fn notes(&self) -> Result<Pitches> {
-        self.get_inversion(self.inversion)
+        self.gen_inversion(self.inversion)
     }
 }
 

@@ -1,9 +1,26 @@
-use crate::{error::{Error, Result}, interval::Interval};
+use crate::{error::{Error, Result}, interval::IntervalType};
 use num_derive::FromPrimitive;
+use strum::EnumString;
+
 use std::{
     ops::{Add, Sub},
     str::FromStr,
 };
+
+pub struct Pitches(pub Vec<PitchOctave>);
+
+impl Pitches {
+    fn test(&self) {
+
+    }
+}
+
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, EnumString)]
+pub enum PitchOrder {
+    #[default]
+    Ascending,
+    Descending,
+}
 
 #[derive(Copy, Clone, Debug, Ord, PartialOrd, Default, FromPrimitive, Eq, PartialEq)]
 #[repr(u8)]
@@ -208,13 +225,6 @@ impl Sub<u8> for Step {
 }
 
 impl Step {
-    const NOTE_C_NUMERIC_VALUE: i8 = -2;
-    const NOTE_D_NUMERIC_VALUE: i8 = 0;
-    const NOTE_E_NUMERIC_VALUE: i8 = 2;
-    const NOTE_F_NUMERIC_VALUE: i8 = -3;
-    const NOTE_G_NUMERIC_VALUE: i8 = -1;
-    const NOTE_A_NUMERIC_VALUE: i8 = 1;
-    const NOTE_B_NUMERIC_VALUE: i8 = 3;
     pub fn increment(&self) -> Step {
         match self {
             Step::C => Step::D,
@@ -338,13 +348,6 @@ impl FromStr for Pitch {
     }
 }
 
-impl Pitch {
-    // fn correct_spelling(enharmonic_equivalent: i8, quality: Quality) -> Pitch {
-    //     let tonic_alter = self.alter;
-
-    // }
-}
-
 impl ToString for Pitch {
     fn to_string(&self) -> String {
         [self.step.to_string(), self.alter.to_string()].join("")
@@ -359,13 +362,7 @@ pub struct PitchOctave {
 impl PitchOctave {
     const MAX_NOTE_VALUE: i8 = 96;
     const MIN_NOTE_VALUE: i8 = 12;
-    // const NOTE_CSH_NUMERIC_VALUE: i8 = -7;
-    // const NOTE_DSH_NUMERIC_VALUE: i8 = 7;
-    // const NOTE_FSH_NUMERIC_VALUE: i8 = 4;
-    // const NOTE_GSH_NUMERIC_VALUE: i8 = 6;
-    // const NOTE_ASH_NUMERIC_VALUE: i8 = -4;
-    // const NOTE_MAX_NUMERAL_VALUE: i8 = 12;
-    // const NOTE_MIN_NUMERAL_VALUE: i8 = -12;
+
     // If the preferred Alter is None, and the semitone falls on an accidental,
     // a default spelling must be chosen, we will choose to use flats by default.
     pub fn new_from_semitone(
@@ -453,18 +450,66 @@ impl PitchOctave {
             _ => {todo!("Unimplemented");}
         }
     }
-    pub fn checked_add(&self, v: Interval) -> Option<Self> {
-        //let tonic_alter = self.alter;
-        //let quality = v.get_quality();
+    pub fn checked_sub(&self, v: IntervalType) -> Option<Self> {
         let mut target_semitone = self.get_semitone_value().ok()?;
-        target_semitone += v.get_semitone_value() as i8;
-        //let final_octave = Self::calculate_octave(target_semitone);
+        target_semitone -= v.get_semitone_value() as i8;
 
         let original_octave = self.octave as u8;
-        let new_diatonic_step = self.pitch.step + v.get_diatonic_increment();
+        let new_diatonic_step = self.pitch.step - v.get_diatonic_value();
+        let new_diatonic_pitch;
+        if new_diatonic_step >= self.pitch.step
+            && v.get_diatonic_value() != IntervalType::UNISON_DIATONIC_INC
+        {
+            // The new step is an octave lower than the previous
+            new_diatonic_pitch = PitchOctave {
+                pitch: Pitch {
+                    step: new_diatonic_step,
+                    alter: Alter::None,
+                },
+                octave: Octave::from(original_octave - 1),
+            };
+        } else {
+            new_diatonic_pitch = PitchOctave {
+                pitch: Pitch {
+                    step: new_diatonic_step,
+                    alter: Alter::None,
+                },
+                octave: self.octave,
+            };
+        }
+        let diatonic_semitone = new_diatonic_pitch.get_semitone_value().ok()?;
+
+        // Calculate difference between diatonic target and actual target and use difference to infer
+        // accidentals
+        // println!("ds is {diatonic_semitone} ts is {target_semitone}");
+        let difference = diatonic_semitone - target_semitone;
+        // println!("Difference is {}", difference);
+        let mut pabs = if difference == -1 {
+            PitchOctave::new_from_semitone(target_semitone, AccidentalSpelling::Sharp).ok()?
+        } else if difference == 1 || difference == 0{
+            PitchOctave::new_from_semitone(target_semitone, AccidentalSpelling::Flat).ok()?
+        } else {
+            panic!("Incomplete tbd")
+        };
+        if pabs.pitch.alter == Alter::None {
+            // re-spell pitches that did not contain accidentals to contain accidentals based on difference
+            if difference == 1 {
+                pabs.respell_pitch(Alter::Flat);
+            } else if difference == -1 {
+                pabs.respell_pitch(Alter::Sharp);
+            }
+        }
+        Some(pabs)
+    }
+    pub fn checked_add(&self, v: IntervalType) -> Option<Self> {
+        let mut target_semitone = self.get_semitone_value().ok()?;
+        target_semitone += v.get_semitone_value() as i8;
+
+        let original_octave = self.octave as u8;
+        let new_diatonic_step = self.pitch.step + v.get_diatonic_value();
         let new_diatonic_pitch;
         if new_diatonic_step <= self.pitch.step
-            && v.get_diatonic_increment() != Interval::UNISON_DIATONIC_INC
+            && v.get_diatonic_value() != IntervalType::UNISON_DIATONIC_INC
         {
             // The new step is an octave higher than the previous
             new_diatonic_pitch = PitchOctave {
@@ -487,9 +532,9 @@ impl PitchOctave {
 
         // Calculate difference between diatonic target and actual target and use difference to infer
         // accidentals
-        println!("ds is {diatonic_semitone} ts is {target_semitone}");
+        // println!("ds is {diatonic_semitone} ts is {target_semitone}");
         let difference = diatonic_semitone - target_semitone;
-        println!("Difference is {}", difference);
+        // println!("Difference is {}", difference);
         let mut pabs = if difference == -1 {
             PitchOctave::new_from_semitone(target_semitone, AccidentalSpelling::Sharp).ok()?
         } else if difference == 1 || difference == 0{
@@ -507,35 +552,7 @@ impl PitchOctave {
         }
         Some(pabs)
     }
-    // pub fn normalize_note_numeral(mut note: i8) -> i8 {
-    //     let note_normed = |n| {
-    //         if n > NOTE_MAX_NUMERAL_VALUE {
-    //             Ordering::Greater
-    //         } else if n < NOTE_MIN_NUMERAL_VALUE {
-    //             Ordering::Less
-    //         } else {
-    //             Ordering::Equal
-    //         }
-    //     };
 
-    //     loop {
-    //         let ordering = note_normed(note);
-    //         if ordering == Ordering::Equal {
-    //             break;
-    //         } else if ordering == Ordering::Greater {
-    //             note -= NOTE_MAX_NUMERAL_VALUE;
-    //         } else if ordering == Ordering::Less {
-    //             note -= NOTE_MIN_NUMERAL_VALUE;
-    //         }
-    //     }
-    //     note
-    // }
-
-    // pub fn get_note_numeral_value(&self) -> i8 {
-    //     let step_val = i8::from(self.step);
-    //     let alter_val = i8::from(self.alter);
-    //     Self::normalize_note_numeral(step_val + alter_val)
-    // }
 }
 // impl FromStr for PitchAbsolute {
 //     type Err = Error;

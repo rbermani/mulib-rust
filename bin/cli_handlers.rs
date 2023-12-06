@@ -1,6 +1,8 @@
 
 
-use super::repl_funcs::{append, chord_gen, prepend, Context};
+use crate::repl_funcs::{scale_gen_desc, interval_gen};
+
+use super::repl_funcs::{append, scale_gen, chord_gen, prepend, Context};
 use std::fs::{self, File};
 use std::io::{BufReader, BufWriter, Write};
 use std::path::PathBuf;
@@ -25,10 +27,29 @@ pub fn repl_shell() -> ReplResult<()> {
                 .with_help("Prepend name to front of list"),
         )
         .add_command(
-            Command::new("chord_gen", chord_gen)
+            Command::new("chord", chord_gen)
                 .with_parameter(Parameter::new("root").set_required(true)?)?
                 .with_parameter(Parameter::new("chord").set_required(true)?)?
                 .with_help("Generate chord"),
+        )
+        .add_command(
+            Command::new("scale", scale_gen)
+                .with_parameter(Parameter::new("tonic").set_required(true)?)?
+                .with_parameter(Parameter::new("scale").set_required(true)?)?
+                .with_help("Generate scale"),
+        )
+        .add_command(
+            Command::new("interval", interval_gen)
+                .with_parameter(Parameter::new("root").set_required(true)?)?
+                .with_parameter(Parameter::new("interval").set_required(true)?)?
+                .with_parameter(Parameter::new("order").set_required(true)?)?
+                .with_help("Generate scale"),
+        )
+        .add_command(
+            Command::new("scale_desc", scale_gen_desc)
+                .with_parameter(Parameter::new("tonic").set_required(true)?)?
+                .with_parameter(Parameter::new("scale").set_required(true)?)?
+                .with_help("Generate scale"),
         );
     repl.run()
 }

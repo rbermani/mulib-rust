@@ -1,3 +1,59 @@
+use crate::{pitch::{PitchOrder, Pitches}, notes::Notes};
+use super::pitch::PitchOctave;
+use crate::error::{Error, Result};
+use strum::EnumString;
+
+
+pub struct Interval {
+    pub root: PitchOctave,
+    pub kind: IntervalType,
+    pub pitch_order: PitchOrder,
+}
+
+impl Interval {
+    pub fn new(root: PitchOctave, kind: IntervalType) -> Self {
+        Self {
+            root,
+            kind,
+            pitch_order: PitchOrder::Ascending,
+        }
+    }
+    pub fn new_with_order(root: PitchOctave, kind: IntervalType, pitch_order: PitchOrder) -> Self {
+        Self {
+            root,
+            kind,
+            pitch_order,
+        }
+    }
+    fn gen_notes(&self) -> Result<Pitches> {
+        let semitone = self.kind.get_semitone_value();
+        let mut interval = Pitches(vec![self.root]);
+
+        match self.pitch_order {
+            PitchOrder::Ascending => {
+                if let Some(tone) = self.root.checked_add(IntervalType::from(semitone)) {
+                    interval.0.push(tone);
+                } else {
+                    return Err(Error::OutofBounds);
+                }
+            }
+            PitchOrder::Descending => {
+                if let Some(tone) = self.root.checked_sub(IntervalType::from(semitone)) {
+                    interval.0.push(tone);
+                } else {
+                    return Err(Error::OutofBounds);
+                }
+            }
+        }
+        Ok(interval)
+    }
+}
+
+impl Notes for Interval {
+    fn notes(&self) -> Result<Pitches> {
+        self.gen_notes()
+    }
+}
 
 pub enum Quality {
     Perfect,
@@ -9,7 +65,8 @@ pub enum Quality {
 
 pub type NumericIntervalsSlice = [u8];
 
-pub enum Interval {
+#[derive(Debug, Copy, Clone, PartialEq, EnumString)]
+pub enum IntervalType {
     Unison,
     DiminishedSecond,
     MinorSecond,
@@ -37,7 +94,7 @@ pub enum Interval {
     Octave,
 }
 
-impl Interval {
+impl IntervalType {
     pub const UNISON_DIATONIC_INC: u8 = 0;
     pub const SECOND_DIATONIC_INC: u8 = 1; // C,D or E,F would be 1 diatonic increments
     pub const THIRD_DIATONIC_INC: u8 = 2; // E,G or F,A would be 2 diatonic increments
@@ -61,111 +118,111 @@ impl Interval {
     const MAJOR_SEVENTH_INTERVAL_SEMITONES: u8 = 11;
     const OCTAVE_INTERVAL_SEMITONES: u8 = 12;
 
-    pub fn get_diatonic_increment(&self) -> u8 {
+    pub fn get_diatonic_value(&self) -> u8 {
         match self {
-            Interval::Unison => Self::UNISON_DIATONIC_INC,
-            Interval::AugmentedSecond
-            | Interval::DiminishedSecond
-            | Interval::MinorSecond
-            | Interval::MajorSecond => Self::SECOND_DIATONIC_INC,
-            Interval::DiminishedThird
-            | Interval::AugmentedThird
-            | Interval::MajorThird
-            | Interval::MinorThird => Self::THIRD_DIATONIC_INC,
-            Interval::AugmentedFourth | Interval::DiminishedFourth | Interval::Fourth => {
+            IntervalType::Unison => Self::UNISON_DIATONIC_INC,
+            IntervalType::AugmentedSecond
+            | IntervalType::DiminishedSecond
+            | IntervalType::MinorSecond
+            | IntervalType::MajorSecond => Self::SECOND_DIATONIC_INC,
+            IntervalType::DiminishedThird
+            | IntervalType::AugmentedThird
+            | IntervalType::MajorThird
+            | IntervalType::MinorThird => Self::THIRD_DIATONIC_INC,
+            IntervalType::AugmentedFourth | IntervalType::DiminishedFourth | IntervalType::Fourth => {
                 Self::FOURTH_DIATONIC_INC
             }
-            Interval::AugmentedFifth | Interval::DiminishedFifth | Interval::Fifth => {
+            IntervalType::AugmentedFifth | IntervalType::DiminishedFifth | IntervalType::Fifth => {
                 Self::FIFTH_DIATONIC_INC
             }
-            Interval::AugmentedSixth
-            | Interval::DiminishedSixth
-            | Interval::MinorSixth
-            | Interval::MajorSixth => Self::SIXTH_DIATONIC_INC,
-            Interval::DiminishedSeventh
-            | Interval::MinorSeventh
-            | Interval::MajorSeventh
-            | Interval::AugmentedSeventh => Self::SEVENTH_DIATONIC_INC,
-            Interval::Octave | Interval::DiminishedEighth => Self::EIGHTH_DIATONIC_INC,
+            IntervalType::AugmentedSixth
+            | IntervalType::DiminishedSixth
+            | IntervalType::MinorSixth
+            | IntervalType::MajorSixth => Self::SIXTH_DIATONIC_INC,
+            IntervalType::DiminishedSeventh
+            | IntervalType::MinorSeventh
+            | IntervalType::MajorSeventh
+            | IntervalType::AugmentedSeventh => Self::SEVENTH_DIATONIC_INC,
+            IntervalType::Octave | IntervalType::DiminishedEighth => Self::EIGHTH_DIATONIC_INC,
         }
     }
 
     pub fn get_quality(&self) -> Quality {
         match self {
-            Interval::Unison | Interval::Fourth | Interval::Fifth | Interval::Octave => {
+            IntervalType::Unison | IntervalType::Fourth | IntervalType::Fifth | IntervalType::Octave => {
                 Quality::Perfect
             }
-            Interval::DiminishedSecond
-            | Interval::DiminishedThird
-            | Interval::DiminishedFourth
-            | Interval::DiminishedFifth
-            | Interval::DiminishedSixth
-            | Interval::DiminishedSeventh
-            | Interval::DiminishedEighth => Quality::Diminished,
-            Interval::MajorSecond
-            | Interval::MajorThird
-            | Interval::MajorSixth
-            | Interval::MajorSeventh => Quality::Major,
-            Interval::AugmentedFifth
-            | Interval::AugmentedThird
-            | Interval::AugmentedSixth
-            | Interval::AugmentedSecond
-            | Interval::AugmentedFourth
-            | Interval::AugmentedSeventh => Quality::Augmented,
-            Interval::MinorSecond
-            | Interval::MinorThird
-            | Interval::MinorSixth
-            | Interval::MinorSeventh => Quality::Minor,
+            IntervalType::DiminishedSecond
+            | IntervalType::DiminishedThird
+            | IntervalType::DiminishedFourth
+            | IntervalType::DiminishedFifth
+            | IntervalType::DiminishedSixth
+            | IntervalType::DiminishedSeventh
+            | IntervalType::DiminishedEighth => Quality::Diminished,
+            IntervalType::MajorSecond
+            | IntervalType::MajorThird
+            | IntervalType::MajorSixth
+            | IntervalType::MajorSeventh => Quality::Major,
+            IntervalType::AugmentedFifth
+            | IntervalType::AugmentedThird
+            | IntervalType::AugmentedSixth
+            | IntervalType::AugmentedSecond
+            | IntervalType::AugmentedFourth
+            | IntervalType::AugmentedSeventh => Quality::Augmented,
+            IntervalType::MinorSecond
+            | IntervalType::MinorThird
+            | IntervalType::MinorSixth
+            | IntervalType::MinorSeventh => Quality::Minor,
         }
     }
     pub fn get_semitone_value(&self) -> u8 {
         match self {
-            Interval::Unison => Self::UNISON_INTERVAL_SEMITONES,
-            Interval::DiminishedSecond => Self::UNISON_INTERVAL_SEMITONES,
-            Interval::MinorSecond => Self::MINSECOND_INTERVAL_SEMITONES,
-            Interval::MajorSecond => Self::MAJSECOND_INTERVAL_SEMITONES,
-            Interval::DiminishedThird => Self::MAJSECOND_INTERVAL_SEMITONES,
-            Interval::AugmentedSecond => Self::MINTHIRD_INTERVAL_SEMITONES,
-            Interval::AugmentedThird => Self::PERFECT_FOURTH_INTERVAL_SEMITONES,
-            Interval::MinorThird => Self::MINTHIRD_INTERVAL_SEMITONES,
-            Interval::MajorThird => Self::MAJTHIRD_INTERVAL_SEMITONES,
-            Interval::DiminishedFourth => Self::MAJTHIRD_INTERVAL_SEMITONES,
-            Interval::Fourth => Self::PERFECT_FOURTH_INTERVAL_SEMITONES,
-            Interval::AugmentedFourth => Self::AUGMENTED_FOURTH_INTERVAL_SEMITONES,
-            Interval::DiminishedFifth => Self::AUGMENTED_FOURTH_INTERVAL_SEMITONES,
-            Interval::Fifth => Self::PERFECT_FIFTH_INTERVAL_SEMITONES,
-            Interval::DiminishedSixth => Self::PERFECT_FIFTH_INTERVAL_SEMITONES,
-            Interval::AugmentedFifth => Self::MINOR_SIXTH_INTERVAL_SEMITONES,
-            Interval::MinorSixth => Self::MINOR_SIXTH_INTERVAL_SEMITONES,
-            Interval::MajorSixth => Self::MAJOR_SIXTH_INTERVAL_SEMITONES,
-            Interval::AugmentedSixth => Self::MAJOR_SIXTH_INTERVAL_SEMITONES,
-            Interval::DiminishedSeventh => Self::MAJOR_SIXTH_INTERVAL_SEMITONES,
-            Interval::MinorSeventh => Self::MINOR_SEVENTH_INTERVAL_SEMITONES,
-            Interval::MajorSeventh => Self::MAJOR_SEVENTH_INTERVAL_SEMITONES,
-            Interval::DiminishedEighth => Self::MAJOR_SEVENTH_INTERVAL_SEMITONES,
-            Interval::AugmentedSeventh => Self::OCTAVE_INTERVAL_SEMITONES,
-            Interval::Octave => Self::OCTAVE_INTERVAL_SEMITONES,
+            IntervalType::Unison => Self::UNISON_INTERVAL_SEMITONES,
+            IntervalType::DiminishedSecond => Self::UNISON_INTERVAL_SEMITONES,
+            IntervalType::MinorSecond => Self::MINSECOND_INTERVAL_SEMITONES,
+            IntervalType::MajorSecond => Self::MAJSECOND_INTERVAL_SEMITONES,
+            IntervalType::DiminishedThird => Self::MAJSECOND_INTERVAL_SEMITONES,
+            IntervalType::AugmentedSecond => Self::MINTHIRD_INTERVAL_SEMITONES,
+            IntervalType::AugmentedThird => Self::PERFECT_FOURTH_INTERVAL_SEMITONES,
+            IntervalType::MinorThird => Self::MINTHIRD_INTERVAL_SEMITONES,
+            IntervalType::MajorThird => Self::MAJTHIRD_INTERVAL_SEMITONES,
+            IntervalType::DiminishedFourth => Self::MAJTHIRD_INTERVAL_SEMITONES,
+            IntervalType::Fourth => Self::PERFECT_FOURTH_INTERVAL_SEMITONES,
+            IntervalType::AugmentedFourth => Self::AUGMENTED_FOURTH_INTERVAL_SEMITONES,
+            IntervalType::DiminishedFifth => Self::AUGMENTED_FOURTH_INTERVAL_SEMITONES,
+            IntervalType::Fifth => Self::PERFECT_FIFTH_INTERVAL_SEMITONES,
+            IntervalType::DiminishedSixth => Self::PERFECT_FIFTH_INTERVAL_SEMITONES,
+            IntervalType::AugmentedFifth => Self::MINOR_SIXTH_INTERVAL_SEMITONES,
+            IntervalType::MinorSixth => Self::MINOR_SIXTH_INTERVAL_SEMITONES,
+            IntervalType::MajorSixth => Self::MAJOR_SIXTH_INTERVAL_SEMITONES,
+            IntervalType::AugmentedSixth => Self::MAJOR_SIXTH_INTERVAL_SEMITONES,
+            IntervalType::DiminishedSeventh => Self::MAJOR_SIXTH_INTERVAL_SEMITONES,
+            IntervalType::MinorSeventh => Self::MINOR_SEVENTH_INTERVAL_SEMITONES,
+            IntervalType::MajorSeventh => Self::MAJOR_SEVENTH_INTERVAL_SEMITONES,
+            IntervalType::DiminishedEighth => Self::MAJOR_SEVENTH_INTERVAL_SEMITONES,
+            IntervalType::AugmentedSeventh => Self::OCTAVE_INTERVAL_SEMITONES,
+            IntervalType::Octave => Self::OCTAVE_INTERVAL_SEMITONES,
         }
     }
 
 }
 
-impl From<u8> for Interval {
+impl From<u8> for IntervalType {
     fn from(value: u8) -> Self {
         match (value) {
-            Self::UNISON_INTERVAL_SEMITONES => Interval::Unison,
-            Self::MINSECOND_INTERVAL_SEMITONES => Interval::MinorSecond,
-            Self::MAJSECOND_INTERVAL_SEMITONES => Interval::MajorSecond,
-            Self::MINTHIRD_INTERVAL_SEMITONES => Interval::MinorThird,
-            Self::MAJTHIRD_INTERVAL_SEMITONES => Interval::MajorThird,
-            Self::PERFECT_FOURTH_INTERVAL_SEMITONES => Interval::Fourth,
-            Self::AUGMENTED_FOURTH_INTERVAL_SEMITONES => Interval::AugmentedFourth,
-            Self::PERFECT_FIFTH_INTERVAL_SEMITONES => Interval::Fifth,
-            Self::MINOR_SIXTH_INTERVAL_SEMITONES => Interval::MinorSixth,
-            Self::MAJOR_SIXTH_INTERVAL_SEMITONES => Interval::MajorSixth,
-            Self::MINOR_SEVENTH_INTERVAL_SEMITONES => Interval::MinorSeventh,
-            Self::MAJOR_SEVENTH_INTERVAL_SEMITONES => Interval::MajorSeventh,
-            Self::OCTAVE_INTERVAL_SEMITONES => Interval::Octave,
+            Self::UNISON_INTERVAL_SEMITONES => IntervalType::Unison,
+            Self::MINSECOND_INTERVAL_SEMITONES => IntervalType::MinorSecond,
+            Self::MAJSECOND_INTERVAL_SEMITONES => IntervalType::MajorSecond,
+            Self::MINTHIRD_INTERVAL_SEMITONES => IntervalType::MinorThird,
+            Self::MAJTHIRD_INTERVAL_SEMITONES => IntervalType::MajorThird,
+            Self::PERFECT_FOURTH_INTERVAL_SEMITONES => IntervalType::Fourth,
+            Self::AUGMENTED_FOURTH_INTERVAL_SEMITONES => IntervalType::AugmentedFourth,
+            Self::PERFECT_FIFTH_INTERVAL_SEMITONES => IntervalType::Fifth,
+            Self::MINOR_SIXTH_INTERVAL_SEMITONES => IntervalType::MinorSixth,
+            Self::MAJOR_SIXTH_INTERVAL_SEMITONES => IntervalType::MajorSixth,
+            Self::MINOR_SEVENTH_INTERVAL_SEMITONES => IntervalType::MinorSeventh,
+            Self::MAJOR_SEVENTH_INTERVAL_SEMITONES => IntervalType::MajorSeventh,
+            Self::OCTAVE_INTERVAL_SEMITONES => IntervalType::Octave,
             _ => panic!("Unsupported interval"),
         }
     }

@@ -1,86 +1,78 @@
-use super::pitch::{Pitch, PitchOctave, Alter};
-use crate::{error::{Error, Result}, chord::{Inversion, Voicing}, interval::Interval};
+use crate::interval::{IntervalType, NumericIntervalsSlice};
+use crate::pitch::PitchOrder;
+use super::pitch::{PitchOctave, Alter, Pitches};
+use crate::notes::Notes;
+use crate::error::{Error, Result};
 use strum::EnumString;
-type ScaleInstance = Vec<PitchOctave>;
+
 
 pub struct Scale {
-    kind: ScaleType,
-    notes: Vec<Pitch>,
+    pub tonic: PitchOctave,
+    pub kind: ScaleType,
+    pub pitch_order: PitchOrder,
 }
 
 impl Scale {
-    fn gen_scale_notes(tonic: Pitch) -> Vec<Pitch> {
-
-        vec![]
-    }
-
-    pub fn new(tonic: Pitch, kind: ScaleType) -> Scale {
-        Scale {
+    pub fn new(tonic: PitchOctave, kind: ScaleType) -> Self {
+        Self {
+            tonic,
             kind,
-            notes: Self::gen_scale_notes(tonic),
+            pitch_order: PitchOrder::Ascending,
         }
     }
-}
-
-impl Scale {
-    pub fn get_tonic(&self) -> Pitch {
-        self.notes.get(0).unwrap().clone()
+    pub fn new_with_order(tonic: PitchOctave, kind: ScaleType, pitch_order: PitchOrder) -> Self {
+        Self {
+            tonic,
+            kind,
+            pitch_order,
+        }
     }
-    pub fn get_type(&self) -> ScaleType {
-        self.kind
-    }
-    pub fn get_instance(&self) -> Result<ScaleInstance> {
-        // let root_form = self.kind.root_chord_interval();
-        // let mut chord: ChordInstance = vec![self.root];
-        // for note in root_form {
-        //     if let Some(chord_tone) = self.root.checked_add(*note) {
-        //         chord.push(chord_tone);
-        //     } else {
-        //         return Err(Error::OutofBounds);
-        //     }
-        // }
-        Err(Error::OutofBounds)
-        //Ok(ScaleInstance)
-    }
-    pub fn get_scale_tones(
-        &self,
-        _inversion: Inversion,
-        _voicing: Voicing,
-    ) -> Result<ScaleInstance> {
-        //let chordvec = vec![self.root];
+    fn gen_notes(&self) -> Result<Pitches> {
+        let intervals = self.kind.scale_interval();
+        let mut scale = Pitches(vec![self.tonic]);
+        match self.pitch_order {
+            PitchOrder::Ascending => {
+                for pitch in intervals {
+                    if let Some(scale_tone) = self.tonic.checked_add(IntervalType::from(*pitch)) {
+                        scale.0.push(scale_tone);
+                    } else {
+                        return Err(Error::OutofBounds);
+                    }
+                }
+                // Add the octave of the tonic
+                if let Some(scale_tone) = self.tonic.checked_add(IntervalType::Octave) {
+                    scale.0.push(scale_tone);
+                } else {
+                    return Err(Error::OutofBounds);
+                }
+            }
+            PitchOrder::Descending => {
+                for pitch in intervals.iter().rev() {
+                    if let Some(scale_tone) = self.tonic.checked_sub(IntervalType::from(12 - *pitch)) {
+                        scale.0.push(scale_tone);
+                    } else {
+                        return Err(Error::OutofBounds);
+                    }
+                }
+                // Add the octave of the tonic
+                if let Some(scale_tone) = self.tonic.checked_sub(IntervalType::Octave) {
+                    scale.0.push(scale_tone);
+                } else {
+                    return Err(Error::OutofBounds);
+                }
+            }
+        }
 
-        // match voicing {
-        //     Voicing::Close => {
-        //         if let Some(intervals) = self.get_instance(Inversion::Root) {
-        //             for note in intervals {
-        //                 if let Some(chord_tone) = self.root.checked_add(*note) {
-        //                     chordvec.push(chord_tone);
-        //                 } else {
-        //                     return Err(Error::OutofBounds);
-        //                 }
-        //             }
-        //         } else {
-        //             return Err(Error::InvalidInversion);
-        //         }
 
-        //     }
-        //     _ => {
+        Ok(scale)
 
-        //     }
-        // }
-        //Ok(chordvec)
-        Err(Error::OutofBounds)
+
     }
 }
 
-pub struct ScaleBuilder {
-    root: PitchOctave,
-    kind: ScaleType,
-}
-
-impl ScaleBuilder {
-    pub fn build(root: PitchOctave, kind: ScaleType) -> Scale {
-        Scale { kind, notes: vec![] }
+impl Notes for Scale {
+    fn notes(&self) -> Result<Pitches> {
+        self.gen_notes()
     }
 }
 
@@ -112,29 +104,23 @@ pub enum ScaleType {
     PentatonicMajor,
 }
 
-type IntervalsSlice = [Interval];
+//type IntervalsSlice = [Interval];
 
 impl ScaleType {
-    const IONIAN_SCALE: [Interval; 7] = [
-        Interval::MajorSecond,
-        Interval::MajorSecond,
-        Interval::MinorSecond,
-        Interval::MajorSecond,
-        Interval::MajorSecond,
-        Interval::MajorSecond,
-        Interval::MinorSecond,
-    ];
-    const AEOLIAN_SCALE: [Alter; 7] = [
-        Alter::None,
-        Alter::None,
-        Alter::None,
-        Alter::None,
-        Alter::None,
-        Alter::None,
-        Alter::None,
-    ];
+    const IONIAN_SCALE: [u8; 6] = [2, 4, 5, 7, 9, 11];
+    const CHROMATIC_SCALE: [u8; 10] = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+    const AEOLIAN_SCALE: [u8; 6] = [2, 3, 5, 7, 8, 10];
 
-    pub fn get_intervals(scale_type: ScaleType) -> &'static IntervalsSlice {
-        return &Self::IONIAN_SCALE;
+
+    fn scale_interval(&self) -> &NumericIntervalsSlice {
+        match self {
+            ScaleType::Ionian => &Self::IONIAN_SCALE,
+            ScaleType::Chromatic => &Self::CHROMATIC_SCALE,
+            ScaleType::Aeolian => &Self::AEOLIAN_SCALE,
+            _ => &Self::IONIAN_SCALE,
+        }
     }
+    // pub fn get_intervals(scale_type: ScaleType) -> &'static IntervalsSlice {
+    //     return &Self::IONIAN_SCALE;
+    // }
 }

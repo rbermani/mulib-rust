@@ -1,7 +1,7 @@
 
 use crate::{error::{Error, Result}, pitch::PitchOctave};
+use crate::pitch::Pitches;
 
-pub type Pitches = Vec<PitchOctave>;
 
 pub trait Notes {
     fn notes(&self) -> Result<Pitches>;
