@@ -9,11 +9,11 @@ use std::{
 
 pub struct Pitches(pub Vec<PitchOctave>);
 
-impl Pitches {
-    fn test(&self) {
+// impl Pitches {
+//     fn test(&self) {
 
-    }
-}
+//     }
+// }
 
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, EnumString)]
 pub enum PitchOrder {
@@ -378,7 +378,7 @@ impl PitchOctave {
     // a default spelling must be chosen, we will choose to use flats by default.
     pub fn new_from_semitone(
         semitone: i8,
-        mut prefer_spelling: AccidentalSpelling,
+        prefer_spelling: AccidentalSpelling,
     ) -> Result<PitchOctave> {
         let octave = Self::calculate_octave(semitone as u8);
         let numeric_octave = octave as i8;
@@ -413,7 +413,7 @@ impl PitchOctave {
                                 },
                                 octave: octave,
                             }),
-                            Err(e) => panic!("Error should not be possible here"),
+                            Err(_e) => panic!("Error should not be possible here"),
                         }
                     }
                     _ => {
@@ -663,10 +663,7 @@ impl PitchOctave {
 #[cfg(test)]
 mod tests {
 
-    use crate::{
-        error::Error,
-        pitch::{AccidentalSpelling, Alter, PitchOctave},
-    };
+    use crate::pitch::{AccidentalSpelling, PitchOctave};
     #[test]
     fn test_semitone_convert() {
         let pitch = PitchOctave::new_from_semitone(49, AccidentalSpelling::Flat);

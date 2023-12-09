@@ -21,7 +21,7 @@ impl Chord {
     }
     fn gen_inversion(&self, inversion: Inversion) -> Result<Pitches> {
         let root_form = self.kind.root_chord_interval();
-        match self.inversion {
+        match inversion {
             Inversion::Root => {
                 let mut chord  = Pitches(vec![self.root]);
                 for note in root_form {

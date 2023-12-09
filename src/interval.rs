@@ -209,7 +209,7 @@ impl IntervalType {
 
 impl From<u8> for IntervalType {
     fn from(value: u8) -> Self {
-        match (value) {
+        match value {
             Self::UNISON_INTERVAL_SEMITONES => IntervalType::Unison,
             Self::MINSECOND_INTERVAL_SEMITONES => IntervalType::MinorSecond,
             Self::MAJSECOND_INTERVAL_SEMITONES => IntervalType::MajorSecond,

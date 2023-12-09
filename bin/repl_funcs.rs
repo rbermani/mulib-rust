@@ -13,7 +13,7 @@ use repl_rs::Convert;
 use repl_rs::Value;
 use std::collections::{HashMap, VecDeque};
 use std::str::FromStr;
-use crate::error::{Result, Error};
+use crate::error::Result;
 use mulib::error::Error as MuLibErr;
 
 #[derive(Default)]

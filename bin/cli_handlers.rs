@@ -1,12 +1,7 @@
 
 
-use crate::repl_funcs::{scale_gen_desc, interval_gen};
-
+use super::repl_funcs::{scale_gen_desc, interval_gen};
 use super::repl_funcs::{append, scale_gen, chord_gen, prepend, Context};
-use std::fs::{self, File};
-use std::io::{BufReader, BufWriter, Write};
-use std::path::PathBuf;
-
 use repl_rs::Result as ReplResult;
 use repl_rs::{crate_description, crate_name, crate_version};
 use repl_rs::{initialize_repl, Repl};

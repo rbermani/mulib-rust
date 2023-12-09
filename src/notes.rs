@@ -1,5 +1,5 @@
 
-use crate::{error::{Error, Result}, pitch::PitchOctave};
+use crate::error::Result;
 use crate::pitch::Pitches;
 
 

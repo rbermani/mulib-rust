@@ -4,12 +4,12 @@ use crate::{interval::Interval, pitch::Pitches};
 
 
 pub struct ChordFind {
-    intervals: Vec<Interval>,
+    _intervals: Vec<Interval>,
 
 }
 
 impl ChordFind {
-    pub fn find_possible_chords(pitches: Pitches) {
-
+    pub fn find_possible_chords(_pitches: Pitches) {
+        unimplemented!("This function is not implemented.");
     }
 }

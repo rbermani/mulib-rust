@@ -1,6 +1,6 @@
 use crate::interval::{IntervalType, NumericIntervalsSlice};
 use crate::pitch::PitchOrder;
-use super::pitch::{PitchOctave, Alter, Pitches};
+use super::pitch::{PitchOctave, Pitches};
 use crate::notes::Notes;
 use crate::error::{Error, Result};
 use strum::EnumString;
