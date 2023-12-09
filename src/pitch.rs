@@ -104,6 +104,17 @@ impl From<Alter> for i8 {
 }
 
 impl Alter {
+    pub fn from_num_string(input: &str) -> Result<Alter> {
+        match input {
+            "-2" => Ok(Alter::DoubleFlat),
+            "-1" => Ok(Alter::Flat),
+            "0" => Ok(Alter::None),
+            "1" => Ok(Alter::Sharp),
+            "2" => Ok(Alter::DoubleSharp),
+            _ => Err(Error::Parse),
+        }
+    }
+
     pub fn to_num_string(&self) -> String {
         match self {
             Alter::DoubleFlat => String::from("-2"),
@@ -114,6 +125,7 @@ impl Alter {
         }
     }
 }
+
 impl FromStr for Alter {
     type Err = Error;
     fn from_str(input: &str) -> Result<Alter> {
