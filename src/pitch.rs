@@ -188,7 +188,6 @@ impl FromStr for Octave {
 
 // Step uses the MIDI pitch numeric values, which are one less than our binary format, due to rests being 0
 #[derive(Copy, Debug, Clone, Eq, Default, PartialEq, Ord, PartialOrd)]
-//#[repr(u8)]
 pub enum Step {
     #[default]
     C,
@@ -372,8 +371,8 @@ pub struct PitchOctave {
 }
 
 impl PitchOctave {
-    const MAX_NOTE_VALUE: i8 = 96;
-    const MIN_NOTE_VALUE: i8 = 12;
+    const MAX_NOTE_VALUE: i8 = 108; // This note is C8
+    const MIN_NOTE_VALUE: i8 = 12;  // This note is C0
 
     // If the preferred Alter is None, and the semitone falls on an accidental,
     // a default spelling must be chosen, we will choose to use flats by default.
